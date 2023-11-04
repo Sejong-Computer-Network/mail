@@ -5,6 +5,7 @@ import java.io.*;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.util.Base64;
+import java.nio.file.Files;
 
 public class App {
     private static final String SMTP_SERVER = "smtp.naver.com";
@@ -28,20 +29,48 @@ public class App {
         sendCommand(writer, reader, "AUTH LOGIN");
 
         String senderEmail = "발신자 메일";
-        String AppPassword = "앱 비밀번호";
+        String appPassword = "앱 비밀번호";
+        String receiverEmail = "수신자 메일";
         sendCommand(writer, reader, encodeBase64(senderEmail));
-        sendCommand(writer, reader, encodeBase64(AppPassword));
+        sendCommand(writer, reader, encodeBase64(appPassword));
 
         // MAIL FROM, RCPT TO
-        sendCommand(writer, reader, "MAIL FROM: <발신자 메일>");
-        sendCommand(writer, reader, "RCPT TO: <받는사람 메일>");
+        sendCommand(writer, reader, "MAIL FROM: <" + senderEmail + ">");
+        sendCommand(writer, reader, "RCPT TO: <" + receiverEmail + ".com>");
 
         // DATA
         sendCommand(writer, reader, "DATA");
-        writer.write("Subject: Test Email\r\n");
-        writer.write("From: 발신자 메일\r\n");
-        writer.write("To: 받는사람 메일\r\n\r\n");
-        writer.write("This is a test email.\r\n.\r\n");
+        String boundary = "===" + System.currentTimeMillis() + "===";
+
+        // MIME 헤더 작성
+        writer.write("MIME-Version: 1.0\r\n");
+        writer.write("Content-Type: multipart/mixed; boundary=\"" + boundary + "\"\r\n");
+
+        writer.write("Subject: 제목\r\n");
+        writer.write("From: " + senderEmail + "\r\n");
+        writer.write("To: " + receiverEmail + "\r\n\r\n");
+
+        // 이메일 본문 작성
+        writer.write("--" + boundary + "\r\n");
+        writer.write("Content-Type: text/plain; charset=UTF-8\r\n\r\n");
+        writer.write("This is a test email with attachment.\r\n\r\n");
+
+        // 첨부 파일 처리
+        File file = new File("./atth.jpeg"); // 첨부할 파일 경로
+        byte[] fileBytes = Files.readAllBytes(file.toPath());
+        String encodedFile = Base64.getEncoder().encodeToString(fileBytes);
+        writer.write("--" + boundary + "\r\n");
+        writer.write("Content-Type: application/octet-stream; name=\"" + file.getName() + "\"\r\n");
+        writer.write("Content-Transfer-Encoding: base64\r\n");
+        writer.write("Content-Disposition: attachment; filename=\"" + file.getName() + "\"\r\n\r\n");
+        writer.write(encodedFile);
+        writer.write("\r\n");
+
+        // MIME 종료
+        writer.write("--" + boundary + "--\r\n");
+
+        // 이메일 종료
+        writer.write(".\r\n");
         writer.flush();
         System.out.println(reader.readLine());
 
