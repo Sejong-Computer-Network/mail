@@ -36,7 +36,7 @@ public class App {
 
         // MAIL FROM, RCPT TO
         sendCommand(writer, reader, "MAIL FROM: <" + senderEmail + ">");
-        sendCommand(writer, reader, "RCPT TO: <" + receiverEmail + ".com>");
+        sendCommand(writer, reader, "RCPT TO: <" + receiverEmail + ">");
 
         // DATA
         sendCommand(writer, reader, "DATA");
@@ -83,7 +83,12 @@ public class App {
         writer.write(command + "\r\n");
         writer.flush();
         System.out.println("> " + command);
-        System.out.println(reader.readLine());
+
+        String response;
+        do {
+            response = reader.readLine();
+            System.out.println(response);
+        } while(response.charAt(3) == '-');
     }
 
     public static String encodeBase64(String input) {
